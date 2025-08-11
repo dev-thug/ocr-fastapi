@@ -10,6 +10,11 @@ dev-debug.log
 node_modules/
 .venv/
 
+# Terraform local state and providers (do not commit)
+**/.terraform/**
+*.tfstate
+*.tfstate.*
+
 # Environment variables
 .env
 
