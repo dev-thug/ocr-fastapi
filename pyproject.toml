@@ -1,102 +1,28 @@
 [tool.poetry]
 name = "ocr-fastapi"
 version = "0.1.0"
-description = "FastAPI-based OCR application with PaddleOCR 3.1"
-authors = ["Hyunjoong Kim <de0978@gmail.com>"]
-readme = "README.md"
-packages = [{include = "app"}]
-homepage = "https://hyunjoong.kim"
-repository = "https://github.com/dev-thug/ocr-fastapi"
+description = "FastAPI backend for PaddleOCR with GPU on ECS"
+authors = ["Your Name <you@example.com>"]
+packages = [{ include = "app" }]
 
 [tool.poetry.dependencies]
-python = "^3.9"
-fastapi = "^0.104.1"
-uvicorn = {extras = ["standard"], version = "^0.24.0"}
-pydantic = "^2.5.0"
-python-multipart = "^0.0.6"
-pillow = "^10.1.0"
-opencv-python = "^4.8.1.78"
-paddlepaddle = "^2.6.2"
-paddleocr = "^3.1.0"
-sqlalchemy = "^2.0.23"
-alembic = "^1.12.1"
-psycopg2-binary = "^2.9.9"
+python = "^3.10"
+fastapi = "^0.111.0"
+uvicorn = {extras = ["standard"], version = "^0.30.0"}
+pydantic-settings = "^2.3.4"
+python-multipart = "^0.0.9"
+structlog = "^24.1.0"
+pynvml = "^11.5.0"
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}
-passlib = {extras = ["bcrypt"], version = "^1.7.4"}
-python-dotenv = "^1.0.0"
-pydantic-settings = "^2.10.1"
-setuptools = "^80.9.0"
-
-[[tool.poetry.source]]
-name = "paddle"
-url = "https://mirror.baidu.com/pypi/simple"
-priority = "explicit"
+requests = "^2.32.3"
+tenacity = "^9.0.0"
+Pillow = "^10.4.0"
+numpy = "^2.0.0"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^7.4.3"
-pytest-asyncio = "^0.21.1"
-httpx = "^0.25.2"
-black = "^23.11.0"
-isort = "^5.12.0"
-flake8 = "^6.1.0"
-mypy = "^1.7.1"
+pytest = "^8.2.0"
+httpx = "^0.27.0"
 
 [build-system]
-requires = ["poetry-core"]
+requires = ["poetry-core>=1.9.0"]
 build-backend = "poetry.core.masonry.api"
-
-[tool.black]
-line-length = 88
-target-version = ['py39']
-include = '\.pyi?$'
-extend-exclude = '''
-/(
-  # directories
-  \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | build
-  | dist
-)/
-'''
-
-[tool.isort]
-profile = "black"
-multi_line_output = 3
-line_length = 88
-known_first_party = ["app"]
-
-[tool.mypy]
-python_version = "3.9"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-disallow_untyped_decorators = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_no_return = true
-warn_unreachable = true
-strict_equality = true
-
-[[tool.mypy.overrides]]
-module = [
-    "paddle.*",
-    "paddleocr.*",
-    "cv2.*",
-    "PIL.*",
-]
-ignore_missing_imports = true
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-addopts = "-v --tb=short"
-asyncio_mode = "auto"

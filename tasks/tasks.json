@@ -1,0 +1,394 @@
+{
+  "version": "1.0",
+  "project": "ocr-fastapi",
+  "generated_from": [
+    "docs/README.md",
+    "docs/architecture.md",
+    "docs/api.md",
+    "docs/docker.md",
+    "docs/infra-terraform.md",
+    "docs/deployment-ci-cd.md",
+    "docs/monitoring.md",
+    "docs/security.md",
+    "docs/testing.md",
+    "docs/amplify-integration.md"
+  ],
+  "tasks": [
+    {
+      "id": "1",
+      "title": "환경 준비: Terraform으로 ECS GPU 클러스터 프로비저닝",
+      "priority": "high",
+      "tags": ["infra", "terraform", "ecs", "gpu"],
+      "description": "VPC/서브넷/보안그룹, ECS 클러스터, ASG g4dn.xlarge, Capacity Provider, ECR, 원격 상태 구성",
+      "links": ["docs/infra-terraform.md"],
+      "subtasks": [
+        {
+          "id": "1.1",
+          "title": "VPC/서브넷/라우팅/보안그룹 작성",
+          "status": "pending"
+        },
+        { "id": "1.2", "title": "ECR 리포지토리 생성", "status": "pending" },
+        {
+          "id": "1.3",
+          "title": "ECS 클러스터/Capacity Provider(g4dn.xlarge) 구성",
+          "status": "pending"
+        },
+        {
+          "id": "1.4",
+          "title": "ASG 스팟 전략 및 스케일 정책 설정",
+          "status": "pending"
+        },
+        {
+          "id": "1.5",
+          "title": "Terraform 원격 상태(S3/DynamoDB) 구성",
+          "status": "pending"
+        },
+        {
+          "id": "1.6",
+          "title": "출력/헬스 검증(terraform plan/apply)",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "title": "PaddlePaddle GPU 3.1 설치 자동화 (CUDA 12.9)",
+      "priority": "high",
+      "tags": ["docker", "runtime", "paddlepaddle"],
+      "description": "CUDA 12.9 호환 PaddlePaddle GPU 3.1 설치 및 런타임 검증 스크립트",
+      "links": ["docs/docker.md"],
+      "subtasks": [
+        {
+          "id": "2.1",
+          "title": "베이스 이미지: nvidia/cuda:12.9.0-runtime-ubuntu22.04",
+          "status": "pending"
+        },
+        {
+          "id": "2.2",
+          "title": "pip index/wheel 설정 및 paddlepaddle-gpu==3.1.* 설치",
+          "status": "pending"
+        },
+        {
+          "id": "2.3",
+          "title": "GPU 가시성 확인(nvidia-smi) 및 간단 셀프체크",
+          "status": "pending"
+        },
+        {
+          "id": "2.4",
+          "title": "모델 프리로드 훅(엔트리포인트 또는 빌드 시) 추가",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "3",
+      "title": "PaddleOCR 3.1.0 설치 자동화",
+      "priority": "high",
+      "tags": ["docker", "paddleocr"],
+      "description": "PaddleOCR 3.1.0 설치 및 캐시 디렉토리 구성",
+      "links": ["docs/docker.md", "docs/models.md"],
+      "subtasks": [
+        {
+          "id": "3.1",
+          "title": "pip install paddleocr==3.1.0",
+          "status": "pending"
+        },
+        {
+          "id": "3.2",
+          "title": "가중치/사전 캐시 디렉토리 설정(/root/.paddleocr 등)",
+          "status": "pending"
+        },
+        {
+          "id": "3.3",
+          "title": "콜드스타트 단축을 위한 프리로드 여부 검토",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "4",
+      "title": "FastAPI 백엔드 구성(엔드포인트/스키마/CORS)",
+      "priority": "high",
+      "tags": ["fastapi", "api", "pydantic"],
+      "description": "/ocr, /structure, /extraction, /health 구현. Pydantic 모델과 에러 래퍼 적용. CORS/설정 관리.",
+      "links": [
+        "docs/api.md",
+        "docs/configuration.md",
+        "docs/amplify-integration.md"
+      ],
+      "subtasks": [
+        {
+          "id": "4.1",
+          "title": "프로젝트 구조(app/)와 라우터 스켈레톤 생성",
+          "status": "pending"
+        },
+        {
+          "id": "4.2",
+          "title": "요청/응답 스키마 공통 래퍼(success/result/error/meta)",
+          "status": "pending"
+        },
+        {
+          "id": "4.3",
+          "title": "CORS 설정(ALLOWED_ORIGINS) 및 OPTIONS 핸들링",
+          "status": "pending"
+        },
+        { "id": "4.4", "title": "예외/에러 응답 표준화", "status": "pending" }
+      ]
+    },
+    {
+      "id": "5",
+      "title": "OCR 엔진 파이프라인 구현(인식/파싱/추출)",
+      "priority": "high",
+      "tags": ["ocr", "pipeline", "paddleocr"],
+      "description": "lang/model 파라미터, 좌표/신뢰도 포함 결과, 모듈러 구조",
+      "links": ["docs/ocr-pipeline.md", "docs/models.md"],
+      "subtasks": [
+        {
+          "id": "5.1",
+          "title": "recognition 모드 구현(text+boxes+score)",
+          "status": "pending"
+        },
+        {
+          "id": "5.2",
+          "title": "parsing 모드 구현(PP-StructureV3)",
+          "status": "pending"
+        },
+        {
+          "id": "5.3",
+          "title": "extraction 모드 구현(PP-ChatOCRv4)",
+          "status": "pending"
+        },
+        {
+          "id": "5.4",
+          "title": "lang/model 선택 파이프라인 팩토리",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "6",
+      "title": "GPU→CPU 폴백/재시도 및 성능 튜닝",
+      "priority": "medium",
+      "tags": ["reliability", "performance"],
+      "description": "예외 시 CPU 폴백 1회 재시도, 프리로드/리사이즈/배치 적용, 타임아웃",
+      "links": ["docs/ocr-pipeline.md", "docs/performance.md"],
+      "subtasks": [
+        {
+          "id": "6.1",
+          "title": "예외 캡처 및 폴백 경로 구현",
+          "status": "pending"
+        },
+        {
+          "id": "6.2",
+          "title": "재시도 정책 정의(횟수/백오프)",
+          "status": "pending"
+        },
+        {
+          "id": "6.3",
+          "title": "입력 리사이즈/배치 처리 옵션",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "7",
+      "title": "인증/권한 및 CORS(Amplify 연동)",
+      "priority": "high",
+      "tags": ["auth", "cognito", "cors"],
+      "description": "Cognito JWT 검증 또는 API Key. Amplify 도메인 CORS 허용.",
+      "links": ["docs/amplify-integration.md", "docs/security.md"],
+      "subtasks": [
+        {
+          "id": "7.1",
+          "title": "AUTH_MODE(cognito|api-key) 설정 및 미들웨어",
+          "status": "pending"
+        },
+        {
+          "id": "7.2",
+          "title": "JWT 검증 로직 또는 API Key 헤더 검증",
+          "status": "pending"
+        },
+        {
+          "id": "7.3",
+          "title": "CORS 프리플라이트 및 헤더 노출 설정",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "8",
+      "title": "헬스체크 구현(/health)",
+      "priority": "medium",
+      "tags": ["observability", "gpu"],
+      "description": "GPU 메트릭(nvidia-smi), Paddle/PaddleOCR 버전 정보, 상태 200",
+      "links": ["docs/health.md"],
+      "subtasks": [
+        {
+          "id": "8.1",
+          "title": "nvidia-smi 파싱(utilization, memory)",
+          "status": "pending"
+        },
+        {
+          "id": "8.2",
+          "title": "버전 정보 수집(paddlepaddle, paddleocr)",
+          "status": "pending"
+        },
+        {
+          "id": "8.3",
+          "title": "헬스 엔드포인트 응답 스키마 고정",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "9",
+      "title": "로깅/관찰성 구성",
+      "priority": "medium",
+      "tags": ["logging", "metrics"],
+      "description": "JSON 구조화 로깅, 요청 ID 상관관계, 성능 메타(latency_ms, device) 기록",
+      "links": ["docs/logging.md", "docs/monitoring.md"],
+      "subtasks": [
+        {
+          "id": "9.1",
+          "title": "구조화 로거(uvicorn/fastapi 핸들러) 설정",
+          "status": "pending"
+        },
+        {
+          "id": "9.2",
+          "title": "요청 ID 상관관계(X-Request-ID) 처리",
+          "status": "pending"
+        },
+        {
+          "id": "9.3",
+          "title": "에러 코드/트레이스 로깅 규약",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "10",
+      "title": "Docker 컨테이너화 및 로컬 GPU 실행",
+      "priority": "high",
+      "tags": ["docker", "dev"],
+      "description": "Dockerfile, .dockerignore, 로컬 --gpus all 실행 및 검증",
+      "links": ["docs/docker.md"],
+      "subtasks": [
+        {
+          "id": "10.1",
+          "title": "Dockerfile 구현 및 이미지 빌드",
+          "status": "pending"
+        },
+        {
+          "id": "10.2",
+          "title": "로컬 GPU 실행 스크립트/Makefile",
+          "status": "pending"
+        },
+        {
+          "id": "10.3",
+          "title": "기본 헬스체크 및 엔드포인트 스모크 테스트",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "11",
+      "title": "ECS 배포(Terraform) 및 CI/CD",
+      "priority": "high",
+      "tags": ["ecs", "alb", "cicd"],
+      "description": "TaskDef(GPU=1), Service, ALB, 오토스케일링, GitHub Actions 파이프라인",
+      "links": ["docs/infra-terraform.md", "docs/deployment-ci-cd.md"],
+      "subtasks": [
+        {
+          "id": "11.1",
+          "title": "Task Definition(GPU=1) 및 Service+ALB 구성",
+          "status": "pending"
+        },
+        {
+          "id": "11.2",
+          "title": "오토스케일링 정책(CPU/GPU/큐) 적용",
+          "status": "pending"
+        },
+        {
+          "id": "11.3",
+          "title": "GitHub Actions: build→ECR push→terraform apply→deploy",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "12",
+      "title": "모니터링/알람 및 Amplify 연동 E2E 테스트",
+      "priority": "medium",
+      "tags": ["monitoring", "amplify"],
+      "description": "CloudWatch Logs/Container Insights(GPU), 대시보드/알람, Amplify에서 E2E 호출 검증",
+      "links": ["docs/monitoring.md", "docs/amplify-integration.md"],
+      "subtasks": [
+        {
+          "id": "12.1",
+          "title": "로그 그룹/대시보드 생성 및 유지정책 설정",
+          "status": "pending"
+        },
+        {
+          "id": "12.2",
+          "title": "알람 설정(GPU>80%, p95>5s, 5xx>1%)",
+          "status": "pending"
+        },
+        {
+          "id": "12.3",
+          "title": "Amplify Next.js에서 API 호출 E2E 검증",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "13",
+      "title": "GPU/Paddle 검증(휠 인덱스/컴파일 옵션) 및 /health CUDA 확인",
+      "priority": "high",
+      "tags": ["gpu", "paddle"],
+      "description": "CUDA 12.9 호환 wheel 인덱스 최종 확정, paddle.run_check(), /health.compiled_with_cuda=true 검증",
+      "links": ["docs/docker.md", "docs/health.md"],
+      "subtasks": [
+        {
+          "id": "13.1",
+          "title": "PADDLE_WHEEL_INDEX 최종 확정 및 이미지 빌드",
+          "status": "pending"
+        },
+        {
+          "id": "13.2",
+          "title": "컨테이너 내부 paddle.utils.run_check() 실행",
+          "status": "pending"
+        },
+        {
+          "id": "13.3",
+          "title": "/health에서 compiled_with_cuda=true 확인(GPU 환경)",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "14",
+      "title": "PP-Structure/ChatOCR 실제 파이프 통합 및 예제 테스트",
+      "priority": "medium",
+      "tags": ["ocr", "structure", "extraction"],
+      "description": "PP-StructureV3 및 ChatOCRv4 파이프 통합, 최소 예제 이미지 테스트",
+      "links": ["docs/ocr-pipeline.md", "docs/models.md"],
+      "subtasks": [
+        {
+          "id": "14.1",
+          "title": "PP-StructureV3 모델 로딩/테이블/마크다운 검증",
+          "status": "pending"
+        },
+        {
+          "id": "14.2",
+          "title": "ChatOCRv4(ERNIE) 통합 경로/토큰 설정 조사 및 PoC",
+          "status": "pending"
+        },
+        {
+          "id": "14.3",
+          "title": "샘플 이미지로 /structure, /extraction e2e 테스트",
+          "status": "pending"
+        }
+      ]
+    }
+  ]
+}

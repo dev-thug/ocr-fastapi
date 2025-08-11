@@ -1,333 +1,187 @@
-# PaddleOCR 3.1 FastAPI Application
+# OCR FastAPI Backend (PaddleOCR 3.1.0, CUDA 12.9)
 
-FastAPI 기반의 PaddleOCR 3.1 OCR(광학 문자 인식) 애플리케이션입니다. Docker Compose를 사용하여 한국어 문서 OCR 서비스를 구축합니다.
+이 저장소는 PaddleOCR 3.1.0 기반의 FastAPI 백엔드 서버를 GPU 환경(ECS/EC2)에서 운영하기 위한 참조 구현입니다. 인프라(Terraform) → 애플리케이션(Docker/Poetry) → 배포(ECR/ECS/ALB) → 모니터링(CloudWatch)까지 일관된 파이프라인을 제공합니다. Amplify Gen2 Next.js 프론트엔드와 연동을 고려합니다.
 
-## 주요 기능
+## 구성 요약
 
-- 🖼️ 이미지 업로드 및 OCR 처리
-- 🇰🇷 한국어 문서 최적화 지원
-- 🌍 다국어 지원 (중국어, 영어, 프랑스어, 독일어, 한국어, 일본어)
-- 📊 신뢰도 점수 제공
-- 💾 결과 데이터베이스 저장
-- 📄 페이지네이션 지원
-- 🔍 결과 검색 및 필터링
-- 🛡️ 파일 업로드 보안 검증
-- ⚡ 고성능 PaddleOCR 3.1 엔진
-- 🐳 Docker Compose 다중 서비스 구조
-- 🔄 자동 헬스체크 및 복구
+- 언어/런타임: Python 3.10, FastAPI 0.100+, Uvicorn
+- OCR: PaddleOCR 3.1.0, PaddlePaddle GPU 3.1 (CUDA 12.9)
+- 컨테이너: `nvidia/cuda:12.9.0-runtime-ubuntu22.04`
+- 인프라: AWS VPC, ECS(EC2 GPU g4dn.xlarge), ALB, ECR, CloudWatch
+- IaC/CI: Terraform, GitHub Actions
 
-## 기술 스택
+디렉터리
 
-- **FastAPI**: 고성능 웹 프레임워크
-- **PaddleOCR 3.1**: 최신 OCR 엔진 (PP-OCRv5)
-- **PaddlePaddle 3.1**: 딥러닝 프레임워크
-- **Docker Compose**: 다중 컨테이너 오케스트레이션
-- **Nginx**: 리버스 프록시 및 로드 밸런서
-- **Redis**: 캐싱 (선택사항)
-- **SQLAlchemy**: ORM 및 데이터베이스 관리
-- **Pydantic**: 데이터 검증 및 직렬화
-- **OpenCV**: 이미지 전처리
-- **Poetry**: 의존성 관리
+- `app/`: FastAPI 앱 소스
+- `docker/Dockerfile`: CUDA 12.9 베이스 Dockerfile
+- `infra/terraform/`: Terraform 모듈(네트워크/ECS/ALB/ASG/모니터링)
+- `docs/`: 상세 가이드 및 설계 문서
+- `scripts/`: GPU 검증 등 유틸 스크립트
+- `tasks/`: 태스크/체크리스트
 
-## 시스템 요구사항
+## 빠른 배포 튜토리얼
 
-### 하드웨어
+- 처음 배포하신다면 루트에 있는 튜토리얼을 따라 하세요: [TUTORIAL-DEPLOY.md](TUTORIAL-DEPLOY.md)
 
-- **CPU**: 4 vCPU 이상 (GPU 사용 시 권장)
-- **RAM**: 8GB 이상 (16GB 권장)
-- **GPU**: NVIDIA GPU (T4 이상 권장, CUDA 12.9 지원)
-- **Storage**: 50GB 이상
+## 사전 준비
 
-### 소프트웨어
+1. 로컬 개발용
 
-- **Docker**: 27.0.3 이상
-- **Docker Compose**: v2.29.0 이상
-- **NVIDIA Container Toolkit**: GPU 사용 시 필수
-- **NVIDIA Driver**: 575.x 이상
+- Python 3.10 (venv 권장), Poetry 설치
+- Docker Desktop + NVIDIA Container Toolkit(GPU 테스트 시)
 
-## 설치 및 실행
+2. AWS 자격
 
-### 1. 저장소 클론
+- AWS 계정 및 IAM 권한, S3/DynamoDB(원격 상태), ECR, ECS, ALB 사용 가능
+
+3. 환경 변수(배포/테스트)
+
+- API Key 모드 시: `API_KEY`
+- Cognito 모드 시: `AUTH_MODE=cognito`, `COGNITO_ISSUER`, `COGNITO_AUDIENCE`
+
+## 애플리케이션 빌드/로컬 실행
+
+Poetry 설치
 
 ```bash
-git clone <repository-url>
-cd ocr-fastapi
+poetry install
+pytest -q
 ```
 
-### 2. 환경 변수 설정
+Docker 이미지 빌드/실행
 
 ```bash
-cp env.example .env
-# .env 파일을 편집하여 필요한 설정을 변경
+# 개발 이미지
+make docker-build
+make docker-run   # 8080
+make smoke-health
+make smoke-ocr
+make docker-stop
+
+# GPU 이미지 (휠 인덱스/런체크 포함)
+make docker-build-gpu PADDLE_WHEEL_INDEX=https://www.paddlepaddle.org.cn/whl/linux/gpu
+# GPU 러닝(호스트에 NVIDIA toolkit 필요)
+make docker-run-gpu
 ```
 
-### 3. Docker Compose 실행
+배치/파싱/추출 스모크
 
 ```bash
-# 모든 서비스 빌드 및 실행
-docker compose up -d
-
-# 로그 확인
-docker compose logs -f
-
-# 특정 서비스 로그 확인
-docker compose logs -f paddleocr-fastapi
+make smoke-structure
+make smoke-extraction
+make smoke-batch
 ```
 
-### 4. 서비스 상태 확인
+## 인프라 프로비저닝(Terraform)
+
+변수 설정(`infra/terraform/variables.tf` 참고)
+
+- `aws_region` 기본 `ap-northeast-2`
+- `project_name` 기본 `ocr-fastapi`
+- `ecr_image`에 ECR 이미지 URI 설정 필요(예: `<acct>.dkr.ecr.<region>.amazonaws.com/ocr-fastapi:latest`)
+
+원격 상태 구성(`infra/terraform/backend.tf`)
+
+```hcl
+terraform {
+  backend "s3" {}
+}
+```
+
+사용 전 `terraform init -backend-config` 플래그로 S3/DynamoDB 구성 지정
 
 ```bash
-# 서비스 상태 확인
-docker compose ps
-
-# 헬스체크 확인
-curl http://localhost/health
-
-# API 문서 확인
-curl http://localhost/docs
+cd infra/terraform
+terraform init \
+  -backend-config="bucket=<STATE_BUCKET>" \
+  -backend-config="key=ocr-fastapi/terraform.tfstate" \
+  -backend-config="region=<REGION>" \
+  -backend-config="dynamodb_table=<LOCK_TABLE>"
+terraform plan -var="ecr_image=<ECR_URI>"
+terraform apply -auto-approve -var="ecr_image=<ECR_URI>"
 ```
 
-## Docker Compose 서비스 구성
-
-### 1. PaddleOCR FastAPI 서비스
-
-- **이미지**: `paddlepaddle/paddle:3.1.0-gpu-cuda12.9-cudnn9.9`
-- **포트**: 8000 (내부)
-- **기능**: OCR 처리, API 제공
-- **GPU**: NVIDIA GPU 지원
-
-### 2. Nginx 서비스
-
-- **이미지**: `nginx:latest`
-- **포트**: 80 (HTTP), 443 (HTTPS)
-- **기능**: 리버스 프록시, 로드 밸런싱, 보안 헤더
-
-### 3. Redis 서비스 (선택사항)
-
-- **이미지**: `redis:7-alpine`
-- **포트**: 6379
-- **기능**: 캐싱, 세션 저장
-
-## API 엔드포인트
-
-### OCR 처리
-
-- `POST /api/v1/ocr/upload`: 이미지 업로드 및 OCR 처리
-- `GET /api/v1/ocr/results`: OCR 결과 목록 조회 (페이지네이션 지원)
-- `GET /api/v1/ocr/results/{id}`: 특정 OCR 결과 조회
-- `DELETE /api/v1/ocr/results/{id}`: OCR 결과 삭제
-
-### 시스템 정보
-
-- `GET /api/v1/ocr/languages`: 지원 언어 목록 조회
-- `GET /api/v1/ocr/health`: 서비스 상태 확인
-- `GET /api/v1/ocr/system-info`: 상세 시스템 정보
-
-## 사용 예시
-
-### 이미지 업로드 및 OCR 처리
+출력 확인
 
 ```bash
-curl -X POST "http://localhost/api/v1/ocr/upload" \
-  -H "accept: application/json" \
-  -H "Content-Type: multipart/form-data" \
-  -F "file=@korean_document.jpg" \
-  -F "language=korean" \
-  -F "confidence_threshold=0.5"
+terraform output
+# vpc_id, public_subnets, private_subnets, ecr_repository_url, ecs_cluster_name, asg_gpu_name
 ```
 
-### OCR 결과 조회
+## 컨테이너 이미지 빌드/푸시(ECR)
+
+ECR 로그인/푸시
 
 ```bash
-curl -X GET "http://localhost/api/v1/ocr/results?page=1&size=10"
+aws ecr get-login-password --region <REGION> | docker login --username AWS --password-stdin <acct>.dkr.ecr.<region>.amazonaws.com
+# 태깅 후 푸시
+docker tag ocr-fastapi:gpu <ECR_URI>
+docker push <ECR_URI>
 ```
 
-### 시스템 정보 확인
+`infra/terraform/variables.tf`의 `ecr_image`에 동일 URI 설정 후 `terraform apply`로 서비스 반영
+
+## ECS 서비스 배포/확인
+
+- ALB 리스너/타깃 그룹 구성은 Terraform에 포함됨
+- 서비스가 실행되면 ALB DNS로 `/health` 호출
 
 ```bash
-curl -X GET "http://localhost/api/v1/ocr/system-info"
+curl http://<ALB_DNS>/health
 ```
 
-## PaddleOCR 3.1 설정
-
-### GPU 설정
-
-```yaml
-# docker-compose.yml
-environment:
-  - PADDLE_OCR_USE_GPU=true
-  - DEFAULT_LANGUAGE=korean
-```
-
-### 성능 최적화
-
-- `PADDLE_OCR_USE_MP=true`: 멀티프로세싱 활성화
-- `PADDLE_OCR_ENABLE_MKLDNN=true`: Intel MKL-DNN 최적화
-- `PADDLE_OCR_DROP_SCORE=0.5`: 최소 신뢰도 임계값
-
-## 지원 언어
-
-- `korean`: 한국어 (기본)
-- `ch`: 중국어
-- `en`: 영어
-- `french`: 프랑스어
-- `german`: 독일어
-- `japan`: 일본어
-
-## 문제 해결
-
-### GPU 관련 문제
+- 인증 모드가 api-key인 경우 헤더 추가
 
 ```bash
-# NVIDIA 드라이버 확인
-nvidia-smi
-
-# Docker GPU 테스트
-docker run --rm --runtime=nvidia --gpus all ubuntu nvidia-smi
-
-# NVIDIA Container Toolkit 재설치
-sudo nvidia-ctk runtime configure --runtime=docker --force
-sudo systemctl restart docker
+curl -H "x-api-key: $API_KEY" http://<ALB_DNS>/ocr -F file=@sample.png
 ```
 
-### 서비스 연결 문제
+## GPU 검증(13.x)
+
+로컬 또는 GPU가 장착된 호스트에서
 
 ```bash
-# 네트워크 확인
-docker network ls
-docker network inspect ocr-fastapi_ocr-net
-
-# 컨테이너 재시작
-docker compose restart
+# 이미지 빌드와 빌드 시 run_check 시도
+make docker-build-gpu PADDLE_WHEEL_INDEX=https://www.paddlepaddle.org.cn/whl/linux/gpu
+# 컨테이너 구동/검증(인증 필요)
+API_KEY=<키> make gpu-verify
 ```
 
-### 모델 로딩 문제
+확인 포인트
 
-```bash
-# 로그 확인
-docker compose logs paddleocr-fastapi
+- `/health.version.compiled_with_cuda == true`
+- `/debug/paddle.run_check == true`
 
-# 컨테이너 내부 확인
-docker exec -it paddleocr-fastapi-service bash
-```
+## 모니터링/알람
 
-## 성능 최적화
+Terraform에 기본 대시보드/알람 포함(`infra/terraform/monitoring.tf`)
 
-### GPU 사용 시
+- ALB TargetResponseTime p95
+- Target 5xx
+- GPU Utilization(CWAgent 전제)
+  대시보드: `<project>-dashboard`
 
-- 5-10배 속도 향상
-- 배치 처리 지원
-- 메모리 사용량 최적화
+## Amplify 연동(요약)
 
-### 확장성
+- Amplify Gen2 Next.js에서 API 도메인 및 인증 헤더 설정(CORS 허용은 `ALLOWED_ORIGINS`)
+- 업로드는 `form-data`(`file`)로 `/ocr`/`/structure`/`/extraction` 호출
+- 상세는 `docs/amplify-integration.md` 참고
 
-```bash
-# 서비스 스케일링
-docker compose up --scale paddleocr-fastapi=3
+## 설정(환경 변수)
 
-# 로드 밸런싱
-# nginx.conf에서 upstream 설정 수정
-```
+- `AUTH_MODE` = `api-key`(기본) | `cognito`
+- `API_KEY` (api-key 모드)
+- `COGNITO_ISSUER`, `COGNITO_AUDIENCE` (cognito 모드)
+- `ALLOWED_ORIGINS` (콤마 구분)
+- `PRELOAD_MODELS` (True/False)
+- `CHATOCR_ENABLED`, `CHATOCR_API_TOKEN` (실험적)
 
-## 모니터링
+## 주의 사항
 
-### 로그 모니터링
+- 로컬 GPU 실행에는 NVIDIA Container Toolkit 필수
+- 실제 GPU 메트릭 알람은 CWAgent 또는 DCGM Exporter 전제
+- ChatOCR 경로는 PoC 토글로 안전 폴백 유지
 
-```bash
-# 실시간 로그
-docker compose logs -f
+## 문서 링크
 
-# 특정 서비스 로그
-docker compose logs -f paddleocr-fastapi
-```
-
-### 메트릭 수집
-
-- Prometheus + Grafana 설정 가능
-- CloudWatch 연동 (AWS 환경)
-
-## 보안
-
-### Nginx 보안 헤더
-
-- X-Frame-Options
-- X-XSS-Protection
-- X-Content-Type-Options
-- Content-Security-Policy
-
-### Rate Limiting
-
-- API 요청 제한: 10 req/s
-- Burst 허용: 20 req/s
-
-## 배포
-
-### 프로덕션 환경
-
-```bash
-# 프로덕션 빌드
-docker compose -f docker-compose.prod.yml up -d
-
-# SSL 인증서 설정
-# nginx.conf에서 HTTPS 블록 활성화
-```
-
-### AWS EC2 배포
-
-```bash
-# EC2 인스턴스 생성 (g4dn.xlarge 권장)
-# NVIDIA 드라이버 설치
-# Docker 및 Docker Compose 설치
-# 애플리케이션 배포
-```
-
-## 개발
-
-### 로컬 개발
-
-```bash
-# 개발 모드 실행
-docker compose -f docker-compose.dev.yml up -d
-
-# 코드 변경 시 자동 재시작
-# 볼륨 마운트로 코드 동기화
-```
-
-### 테스트
-
-```bash
-# 단위 테스트
-docker compose exec paddleocr-fastapi poetry run pytest
-
-# 통합 테스트
-curl -X POST "http://localhost/api/v1/ocr/upload" \
-  -F "file=@test_image.jpg" \
-  -F "language=korean"
-```
-
-## 라이선스
-
-MIT License
-
-## 작성자
-
-**Hyunjoong Kim**
-
-- 📧 이메일: [de0978@gmail.com](mailto:de0978@gmail.com)
-- 🌐 웹사이트: [https://hyunjoong.kim](https://hyunjoong.kim)
-- 💻 GitHub: [https://github.com/dev-thug](https://github.com/dev-thug)
-
-## 기여
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
-
-## 참고 자료
-
-- [PaddleOCR 공식 문서](https://paddlepaddle.github.io/PaddleOCR/)
-- [FastAPI 공식 문서](https://fastapi.tiangolo.com/)
-- [Docker Compose 공식 문서](https://docs.docker.com/compose/)
-- [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/)
+- `docs/README.md`, `docs/infra-terraform.md`, `docs/docker.md`, `docs/health.md`, `docs/monitoring.md`, `docs/amplify-integration.md`

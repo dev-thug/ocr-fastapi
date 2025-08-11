@@ -1,0 +1,26 @@
+Title: PaddleOCR FastAPI Backend (GPU ECS, Amplify Gen2 Integration)
+
+Goals:
+- Build FastAPI backend supporting PaddleOCR 3.1.0 on GPU (CUDA 12.9, PaddlePaddle 3.1)
+- Endpoints: /ocr, /structure, /extraction, /health with JSON schemas
+- Deploy on AWS ECS (g4dn.xlarge) with ALB, IaC via Terraform, CI/CD via GitHub Actions
+- Integrate with Amplify Gen2 (CORS, Cognito or API Key)
+- Monitoring & logging with CloudWatch (GPU metrics)
+
+Non-Functional:
+- Performance: 1-5s per image (GPU), autoscaling 1-10 instances
+- Security: VPC, IAM least privilege, TLS, input validation (10MB, JPEG/PNG)
+- Reliability: GPU→CPU fallback, retry once
+
+Scope:
+- Backend only; Next.js is separate but integrated via API
+
+Deliverables:
+- Dockerfile (nvidia/cuda:12.9.0-runtime-ubuntu22.04), dependencies install
+- Terraform stacks (VPC, ECS, ECR, ALB, ASG g4dn, Capacity Provider)
+- FastAPI app with async handlers, Pydantic, CORS/auth, logging
+- Tests (pytest) and CI/CD pipeline
+
+Open Questions:
+- Auth method: Cognito JWT vs API Key
+- Final result schema fields for boxes/structure/extraction
