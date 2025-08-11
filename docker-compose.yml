@@ -1,0 +1,55 @@
+version: "3.8"
+
+services:
+  paddleocr-fastapi:
+    build: .
+    container_name: paddleocr-fastapi-service
+    runtime: nvidia # driver mount 강제
+    gpus: all # 모든 GPU 할당 (Paddle 3.1 호환)
+    volumes:
+      - ./uploads:/app/uploads # 업로드 디렉토리 마운트
+      - ./app:/app/app # 개발 시 코드 마운트
+    environment:
+      - PADDLE_OCR_USE_GPU=true
+      - DEFAULT_LANGUAGE=korean
+    networks:
+      - ocr-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/ocr/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s # PaddleOCR 모델 로딩 대기
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx-proxy
+    ports:
+      - "80:80" # HTTP 포트 매핑
+      - "443:443" # HTTPS 포트 매핑 (SSL 설정 시)
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro # Nginx 설정 마운트
+      - ./ssl:/etc/nginx/ssl:ro # SSL 인증서 (선택사항)
+    depends_on:
+      paddleocr-fastapi:
+        condition: service_healthy # PaddleOCR healthy 상태 대기
+    networks:
+      - ocr-net
+
+  # Redis for caching (선택사항)
+  redis:
+    image: redis:7-alpine
+    container_name: redis-cache
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - ocr-net
+
+volumes:
+  redis_data:
+
+networks:
+  ocr-net: # 내부 네트워크 정의
+    driver: bridge
