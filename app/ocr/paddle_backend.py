@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Any, List, Tuple
+import os
 from io import BytesIO
 from PIL import Image
 import numpy as np
@@ -24,7 +25,30 @@ class PaddleBackend:
     def __init__(self, lang: str = "en", use_gpu: bool | None = None) -> None:
         if not _paddle_available:
             raise RuntimeError("PaddleOCR not available")
-        self.ocr = PaddleOCR(use_angle_cls=True, lang=lang, use_gpu=use_gpu)
+        # Resolve GPU usage: env > explicit arg > auto-detect
+        resolved_use_gpu: bool | None = use_gpu
+        env_flag = os.getenv("PADDLE_USE_GPU")
+        if env_flag is not None:
+            if env_flag.strip().lower() in ("1", "true", "yes", "on"):  # force enable
+                resolved_use_gpu = True
+            elif env_flag.strip().lower() in ("0", "false", "no", "off"):  # force disable
+                resolved_use_gpu = False
+        if resolved_use_gpu is None:
+            try:
+                import paddle  # type: ignore
+
+                if getattr(paddle, "is_compiled_with_cuda", lambda: False)():
+                    try:
+                        paddle.device.set_device("gpu")  # ensure GPU context
+                    except Exception:
+                        pass
+                    resolved_use_gpu = True
+                else:
+                    resolved_use_gpu = False
+            except Exception:
+                resolved_use_gpu = False
+
+        self.ocr = PaddleOCR(use_angle_cls=True, lang=lang, use_gpu=resolved_use_gpu)
         # Lazily create PP-Structure only when needed to avoid SystemExit on unsupported langs
         self._pp_structure = None
 

@@ -43,6 +43,17 @@ docker run -d -e API_KEY=test -p 80:8080 --name ocr-api --restart unless-stopped
   uvicorn app.main:app --host 0.0.0.0 --port 8080
 ```
 
+한글+영어 실행
+
+```bash
+docker run -d --gpus all \
+  -e API_KEY=test \
+  -e PRELOAD_MODELS=true \
+  -e PRELOAD_LANGS=korean,en \
+  -e PADDLE_USE_GPU=true \
+  -p 80:8080 --name ocr-api --restart unless-stopped ocr-fastapi:gpu
+```
+
 - 확인: `http://<EC2-퍼블릭IP>/health`, `http://<EC2-퍼블릭IP>/docs`
 
 ---
