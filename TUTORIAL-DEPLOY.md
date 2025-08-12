@@ -13,6 +13,8 @@
   nvidia-smi   # 정상 출력되면 GPU 사용 가능
   ```
 
+> Amazon Linux 2023(EC2)에서 처음 환경을 세팅한다면 이 가이드를 먼저 따라하세요: [Amazon Linux 2023 설치 가이드(CPU/GPU, 포트 80)](docs/al2023-setup.md)
+
 ### 1. 코드 받기(1분)
 
 ```bash
@@ -64,6 +66,8 @@ API_KEY=<원하는키>
 docker run --rm --gpus all -e API_KEY=$API_KEY -p 8080:8080 --name ocr-api ocr-fastapi:gpu \
   sh -c "uvicorn app.main:app --host 0.0.0.0 --port 8080"
 ```
+
+> EC2에서 80포트로 외부 노출이 필요하면 `-p 80:8080`으로 매핑하세요. AL2023에서의 전체 절차는 [docs/al2023-setup.md](docs/al2023-setup.md)를 참고하세요.
 
 3. 정상 동작 확인(헬스/간단 OCR)
 

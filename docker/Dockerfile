@@ -1,8 +1,9 @@
-FROM nvidia/cuda:12.9.0-runtime-ubuntu22.04
+FROM nvidia/cuda:12.9.0-cudnn-runtime-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3.10 python3.10-venv python3-pip git curl ca-certificates \
+    libglib2.0-0 libsm6 libxext6 libxrender1 libgomp1 libgl1 \
  && rm -rf /var/lib/apt/lists/*
 
 RUN python3.10 -m pip install --upgrade pip poetry
@@ -15,7 +16,7 @@ RUN poetry config virtualenvs.create false \
 # Paddle 관련 설치 (공식 가이드에 맞춰 wheel 인덱스 경로를 전달 가능)
 ARG PADDLE_WHEEL_INDEX=https://www.paddlepaddle.org.cn/whl/linux/gpu
 RUN pip install --no-cache-dir --extra-index-url ${PADDLE_WHEEL_INDEX} "paddlepaddle-gpu==3.1.*" \
- && pip install --no-cache-dir paddleocr==3.1.0 || true
+ && pip install --no-cache-dir paddleocr==3.1.0
 
 # 캐시 디렉토리 준비
 ENV PADDLEOCR_HOME=/root/.paddleocr
