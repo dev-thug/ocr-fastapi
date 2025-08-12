@@ -10,6 +10,12 @@ class Settings(BaseSettings):
     max_file_mb: int = 10
     default_lang: str = "en"
     model_default: str = "pp-ocrv5"
+    # Comma-separated list of allowed language codes for PaddleOCR (lowercase)
+    # Example: "en,korean,ch,japan,latin,chinese_cht"
+    allowed_langs: List[str] = [
+        "en", "korean", "ch", "japan", "latin", "chinese_cht",
+        "fr", "german", "arabic", "cyrillic", "devanagari"
+    ]
 
     # Image processing
     max_image_px: int | None = 2048

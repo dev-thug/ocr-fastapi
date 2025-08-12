@@ -131,6 +131,10 @@ async def health():
 
 @app.post("/ocr", response_model=StandardResponse, dependencies=[Depends(require_auth)])
 async def ocr(file: UploadFile = File(...), lang: str = settings.default_lang, mode: str = "recognition", model: str = settings.model_default):
+    # Normalize and validate language against allowed list
+    lang = (lang or settings.default_lang).strip().lower()
+    if settings.allowed_langs and lang not in settings.allowed_langs:
+        return fail("BadRequest", "Unsupported language code", {"lang": lang, "allowed": settings.allowed_langs})
     if file.size and file.size > settings.max_file_mb * 1024 * 1024:
         return fail("PayloadTooLarge", "File too large")
     # Optional server-side image size guard

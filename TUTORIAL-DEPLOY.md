@@ -69,6 +69,16 @@ docker run --rm --gpus all -e API_KEY=$API_KEY -p 8080:8080 --name ocr-api ocr-f
 
 > EC2에서 80포트로 외부 노출이 필요하면 `-p 80:8080`으로 매핑하세요. AL2023에서의 전체 절차는 [docs/al2023-setup.md](docs/al2023-setup.md)를 참고하세요.
 
+#### 지원 언어 포맷 Tip (PaddleOCR)
+
+- 언어 코드는 소문자, 다음 중 하나여야 합니다(일부 예):
+  - `en`, `korean`, `ch`, `japan`, `latin`, `chinese_cht`, `fr`, `german`, `arabic`, `cyrillic`, `devanagari`
+- 서버는 허용 목록에 없는 코드를 받으면 400 에러를 반환합니다.
+- 예시:
+  - 한국어: `?lang=korean`
+  - 영어: `?lang=en`
+  - 일본어: `?lang=japan`
+
 3. 정상 동작 확인(헬스/간단 OCR)
 
 ```bash
