@@ -14,6 +14,7 @@ from io import BytesIO
 import structlog
 import subprocess
 from typing import Any, List
+import os
 
 
 configure_logging()
@@ -24,11 +25,20 @@ app = FastAPI(title="OCR FastAPI Backend")
 @app.on_event("startup")
 async def startup_preload():
     if settings.preload_models:
-        try:
-            # Preload default engine to warm cache
-            OcrEngine(lang=settings.default_lang, model=settings.model_default)
-        except Exception:
-            pass
+        # Determine languages to preload: PRELOAD_LANGS env (comma-separated) or default_lang
+        raw_langs = os.getenv("PRELOAD_LANGS")
+        if raw_langs:
+            preload_langs = [part.strip() for part in raw_langs.split(",") if part.strip()]
+        else:
+            preload_langs = [settings.default_lang]
+
+        for lang in dict.fromkeys(preload_langs):  # preserve order, dedupe
+            try:
+                log.info("preload_model", lang=lang, model=settings.model_default)
+                OcrEngine(lang=lang, model=settings.model_default)
+            except Exception:
+                # best-effort preload; continue on errors
+                log.warning("preload_failed", lang=lang, model=settings.model_default)
 
 app.add_middleware(
     CORSMiddleware,
