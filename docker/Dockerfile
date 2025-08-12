@@ -16,8 +16,9 @@ RUN poetry config virtualenvs.create false \
 # Paddle 관련 설치 (공식 가이드에 맞춰 wheel 인덱스 경로를 전달 가능)
 ARG PADDLE_WHEEL_INDEX=https://www.paddlepaddle.org.cn/whl/linux/gpu
 # Note: As of now, 3.x wheels are not available on the GPU index above. Pin to 2.6.2 which is published.
-RUN pip install --no-cache-dir --extra-index-url ${PADDLE_WHEEL_INDEX} "paddlepaddle-gpu==2.6.2" \
- && pip install --no-cache-dir "paddleocr==2.7.0"
+RUN python3.10 -m pip install --no-cache-dir --extra-index-url ${PADDLE_WHEEL_INDEX} "paddlepaddle-gpu==2.6.2" \
+ && python3.10 -m pip install --no-cache-dir "paddleocr==2.7.0" \
+ && python3.10 -m pip install --no-cache-dir opencv-python-headless==4.8.1.78 shapely==2.0.2 pyclipper==1.3.0.post5 scikit-image==0.22.0 imgaug==0.4.0
 
 # 캐시 디렉토리 준비
 ENV PADDLEOCR_HOME=/root/.paddleocr
