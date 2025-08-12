@@ -78,6 +78,18 @@ sudo dnf module install -y nvidia-driver:latest-dkms
 sudo reboot
 ```
 
+한글+영어 세팅
+
+```bash
+docker rm -f ocr-api 2>/dev/null || true
+docker run -d --gpus all \
+  -e API_KEY=test \
+  -e PRELOAD_MODELS=true \
+  -e PRELOAD_LANGS=korean,en \
+  -e PADDLE_USE_GPU=true \
+  -p 80:8080 --name ocr-api --restart unless-stopped ocr-fastapi:gpu
+```
+
 재부팅 후 확인:
 
 ```bash
