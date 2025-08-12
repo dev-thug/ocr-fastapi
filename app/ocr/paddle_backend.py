@@ -25,13 +25,8 @@ class PaddleBackend:
         if not _paddle_available:
             raise RuntimeError("PaddleOCR not available")
         self.ocr = PaddleOCR(use_angle_cls=True, lang=lang, use_gpu=use_gpu)
+        # Lazily create PP-Structure only when needed to avoid SystemExit on unsupported langs
         self._pp_structure = None
-        if _pp_structure_available:
-            try:
-                # layout=True enables layout detection; table=True for table recognition where supported
-                self._pp_structure = PPStructure(layout=True, table=True, ocr=True, lang=lang)  # type: ignore
-            except Exception:
-                self._pp_structure = None
 
     def _decode(self, content: bytes) -> Any:
         img = Image.open(BytesIO(content)).convert("RGB")
@@ -54,10 +49,16 @@ class PaddleBackend:
     def parse_structure(self, image: Any | bytes) -> dict:
         if isinstance(image, (bytes, bytearray)):
             image = self._decode(image)
+        # Lazy init PP-Structure here
+        if self._pp_structure is None and _pp_structure_available:
+            try:
+                self._pp_structure = PPStructure(layout=True, table=True, ocr=True, lang=self.ocr.lang)  # type: ignore
+            except BaseException:
+                # Catch SystemExit raised internally by PP-Structure on unsupported languages
+                self._pp_structure = None
         if self._pp_structure is not None:
             try:
                 elements = self._pp_structure(image)  # type: ignore
-                # Normalize minimal structure result
                 tables: list[dict] = []
                 md_lines: list[str] = []
                 for el in elements:
@@ -68,6 +69,7 @@ class PaddleBackend:
                         md_lines.append(str(el.get("res")))
                 return {"tables": tables, "markdown": "\n".join(md_lines)}
             except Exception:
+                # If runtime error, fall back below
                 pass
         # Fallback to OCR text as markdown-like output
         text, _ = self.recognize(image)
